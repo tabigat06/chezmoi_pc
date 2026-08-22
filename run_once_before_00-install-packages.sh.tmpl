@@ -14,7 +14,7 @@ sudo apt update
 sudo apt install -y curl gpg ca-certificates
 
 echo "==> Ставлю пакеты из packages/apt.txt"
-PKG_LIST="$(chezmoi source-path)/packages/apt.txt"
+PKG_LIST="{{ .chezmoi.sourceDir }}/packages/apt.txt"
 if [ -f "$PKG_LIST" ]; then
   # убираем комментарии и пустые строки
   PACKAGES=$(grep -vE '^\s*#|^\s*$' "$PKG_LIST" | tr '\n' ' ')
