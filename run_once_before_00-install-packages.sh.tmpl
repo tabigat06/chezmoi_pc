@@ -29,9 +29,20 @@ if [ ! -f /etc/apt/sources.list.d/trixie-backports.list ]; then
     sudo tee /etc/apt/sources.list.d/trixie-backports.list
 fi
 
-echo "==> Репозиторий DankLinux (niri, quickshell-git и компаньоны)"
 sudo mkdir -p /etc/apt/keyrings
-if [ ! -f /etc/apt/keyrings/danklinux.gpg ]; then
+
+# Проверяем не по имени своего файла, а по тому, упоминается ли уже сам URL
+# репозитория ГДЕ УГОДНО в sources.list.d — так скрипт не конфликтует с
+# репозиториями, которые ты (или официальный dms-установщик) мог добавить
+# раньше под другим именем файла/keyring.
+repo_already_added() {
+  grep -rlq "$1" /etc/apt/sources.list.d/ 2>/dev/null
+}
+
+echo "==> Репозиторий DankLinux (niri, quickshell-git и компаньоны)"
+if repo_already_added "AvengeMedia:/danklinux"; then
+  echo "Уже подключён (найден в /etc/apt/sources.list.d/), пропускаю добавление."
+else
   curl -fsSL "https://download.opensuse.org/repositories/home:AvengeMedia:danklinux/Debian_13/Release.key" | \
     sudo gpg --dearmor -o /etc/apt/keyrings/danklinux.gpg
   echo "deb [signed-by=/etc/apt/keyrings/danklinux.gpg] https://download.opensuse.org/repositories/home:/AvengeMedia:/danklinux/Debian_13/ /" | \
@@ -39,7 +50,9 @@ if [ ! -f /etc/apt/keyrings/danklinux.gpg ]; then
 fi
 
 echo "==> Репозиторий DMS (DankMaterialShell)"
-if [ ! -f /etc/apt/keyrings/dms.gpg ]; then
+if repo_already_added "AvengeMedia:/dms"; then
+  echo "Уже подключён (найден в /etc/apt/sources.list.d/), пропускаю добавление."
+else
   curl -fsSL "https://download.opensuse.org/repositories/home:AvengeMedia:dms/Debian_13/Release.key" | \
     sudo gpg --dearmor -o /etc/apt/keyrings/dms.gpg
   echo "deb [signed-by=/etc/apt/keyrings/dms.gpg] https://download.opensuse.org/repositories/home:/AvengeMedia:/dms/Debian_13/ /" | \
