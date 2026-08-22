@@ -2,6 +2,10 @@
 # Полезно как страховка, если случайно сделаешь `chezmoi add` на директорию
 # верхнего уровня вроде ~/.ssh или ~/.config целиком.
 
+README.md
+docs
+packages
+scripts
 .ssh
 .gnupg
 .aws
