@@ -1,0 +1,15 @@
+# Эти пути chezmoi никогда не будет ни забирать, ни применять.
+# Полезно как страховка, если случайно сделаешь `chezmoi add` на директорию
+# верхнего уровня вроде ~/.ssh или ~/.config целиком.
+
+.ssh
+.gnupg
+.aws
+.config/gh/hosts.yml
+.zsh_history
+.bash_history
+.netrc
+*.pem
+*.key
+id_rsa*
+id_ed25519*

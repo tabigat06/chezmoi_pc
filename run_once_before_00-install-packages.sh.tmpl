@@ -1,0 +1,63 @@
+#!/usr/bin/env bash
+# Этот файл выполняется chezmoi ОДИН РАЗ при первом `chezmoi apply` на машине
+# (имя начинается с run_once_ — chezmoi сам это отслеживает).
+#
+# Идемпотентно: apt install уже установленных пакетов ничего не ломает,
+# так что скрипт безопасно перезапускать вручную, если что-то не доустановилось:
+#   chezmoi cd && ./run_once_before_00-install-packages.sh.tmpl
+set -euo pipefail
+
+DEBIAN_RELEASE="trixie"   # поменяй на bookworm/testing/sid, если у тебя не Debian 13
+
+echo "==> Обновляю apt и ставлю базовые пакеты"
+sudo apt update
+sudo apt install -y curl gpg ca-certificates
+
+echo "==> Ставлю пакеты из packages/apt.txt"
+PKG_LIST="$(chezmoi source-path)/packages/apt.txt"
+if [ -f "$PKG_LIST" ]; then
+  # убираем комментарии и пустые строки
+  PACKAGES=$(grep -vE '^\s*#|^\s*$' "$PKG_LIST" | tr '\n' ' ')
+  sudo apt install -y $PACKAGES
+else
+  echo "Файл $PKG_LIST не найден, пропускаю"
+fi
+
+echo "==> Репозиторий backports (нужен для quickshell на Debian 13)"
+if [ ! -f /etc/apt/sources.list.d/trixie-backports.list ]; then
+  echo "deb http://deb.debian.org/debian ${DEBIAN_RELEASE}-backports main" | \
+    sudo tee /etc/apt/sources.list.d/trixie-backports.list
+fi
+
+echo "==> Репозиторий DankLinux (niri, quickshell-git и компаньоны)"
+sudo mkdir -p /etc/apt/keyrings
+if [ ! -f /etc/apt/keyrings/danklinux.gpg ]; then
+  curl -fsSL "https://download.opensuse.org/repositories/home:AvengeMedia:danklinux/Debian_13/Release.key" | \
+    sudo gpg --dearmor -o /etc/apt/keyrings/danklinux.gpg
+  echo "deb [signed-by=/etc/apt/keyrings/danklinux.gpg] https://download.opensuse.org/repositories/home:/AvengeMedia:/danklinux/Debian_13/ /" | \
+    sudo tee /etc/apt/sources.list.d/danklinux.list
+fi
+
+echo "==> Репозиторий DMS (DankMaterialShell)"
+if [ ! -f /etc/apt/keyrings/dms.gpg ]; then
+  curl -fsSL "https://download.opensuse.org/repositories/home:AvengeMedia:dms/Debian_13/Release.key" | \
+    sudo gpg --dearmor -o /etc/apt/keyrings/dms.gpg
+  echo "deb [signed-by=/etc/apt/keyrings/dms.gpg] https://download.opensuse.org/repositories/home:/AvengeMedia:/dms/Debian_13/ /" | \
+    sudo tee /etc/apt/sources.list.d/dms.list
+fi
+
+sudo apt update
+sudo apt install -y quickshell-git niri dms
+
+echo "==> Первичная генерация конфигов DMS для niri (если ещё не сгенерированы)"
+# dms setup создаёт стартовые конфиги niri/foot под DMS — если у тебя уже
+# есть свои конфиги в этом репозитории, они перезапишутся chezmoi apply ПОСЛЕ
+# этого шага, так что порядок безопасен.
+command -v dms >/dev/null 2>&1 && dms setup || true
+
+echo "==> Меняю дефолтный shell на zsh"
+if [ "$SHELL" != "$(command -v zsh)" ]; then
+  sudo chsh -s "$(command -v zsh)" "$(whoami)"
+fi
+
+echo "==> Готово. Конфиги применит chezmoi после этого скрипта."

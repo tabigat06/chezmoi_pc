@@ -1,0 +1,24 @@
+# Список пакетов apt. Одна строка = одно имя пакета.
+# Строки, начинающиеся с #, игнорируются.
+# Добавляй/убирай пакеты прямо тут — setup-скрипт идемпотентен,
+# уже установленные пакеты просто пропустит.
+
+zsh
+neovim
+git
+curl
+wget
+build-essential
+
+# --- niri и Wayland-окружение ---
+niri
+xwayland-satellite
+foot
+fuzzel
+
+# --- шрифты / темы (по вкусу) ---
+fonts-jetbrains-mono
+
+# DMS (DankMaterialShell) ставится отдельно из репозитория разработчика,
+# см. run_once_before_00-install-packages.sh.tmpl — здесь его нет специально,
+# т.к. он не в стандартных репозиториях Debian.
