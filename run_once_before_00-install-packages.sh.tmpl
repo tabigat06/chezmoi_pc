@@ -13,16 +13,6 @@ echo "==> Обновляю apt и ставлю базовые пакеты"
 sudo apt update
 sudo apt install -y curl gpg ca-certificates
 
-echo "==> Ставлю пакеты из packages/apt.txt"
-PKG_LIST="{{ .chezmoi.sourceDir }}/packages/apt.txt"
-if [ -f "$PKG_LIST" ]; then
-  # убираем комментарии и пустые строки
-  PACKAGES=$(grep -vE '^\s*#|^\s*$' "$PKG_LIST" | tr '\n' ' ')
-  sudo apt install -y $PACKAGES
-else
-  echo "Файл $PKG_LIST не найден, пропускаю"
-fi
-
 echo "==> Репозиторий backports (нужен для quickshell на Debian 13)"
 if [ ! -f /etc/apt/sources.list.d/trixie-backports.list ]; then
   echo "deb http://deb.debian.org/debian ${DEBIAN_RELEASE}-backports main" | \
@@ -39,7 +29,7 @@ repo_already_added() {
   grep -rlq "$1" /etc/apt/sources.list.d/ 2>/dev/null
 }
 
-echo "==> Репозиторий DankLinux (niri, quickshell-git и компаньоны)"
+echo "==> Репозиторий DankLinux (niri, quickshell-git, xwayland-satellite и компаньоны)"
 if repo_already_added "AvengeMedia:/danklinux"; then
   echo "Уже подключён (найден в /etc/apt/sources.list.d/), пропускаю добавление."
 else
@@ -59,8 +49,27 @@ else
     sudo tee /etc/apt/sources.list.d/dms.list
 fi
 
+# Обновляем apt ПОСЛЕ добавления всех репозиториев, чтобы пакеты вроде niri
+# и xwayland-satellite (которые лежат в DankLinux-репозитории, а не в
+# стандартных репозиториях Debian) были уже видны apt на момент установки.
 sudo apt update
-sudo apt install -y quickshell-git niri dms
+
+echo "==> Ставлю пакеты из packages/apt.txt"
+# ВАЖНО: путь подставляется здесь как chezmoi-шаблон (на этапе рендеринга),
+# а НЕ через `chezmoi source-path` во время выполнения скрипта — вызов chezmoi
+# изнутри run_once-скрипта приводит к deadlock блокировки состояния
+# ("timeout obtaining persistent state lock").
+PKG_LIST="{{ .chezmoi.sourceDir }}/packages/apt.txt"
+if [ -f "$PKG_LIST" ]; then
+  # убираем комментарии и пустые строки
+  PACKAGES=$(grep -vE '^\s*#|^\s*$' "$PKG_LIST" | tr '\n' ' ')
+  sudo apt install -y $PACKAGES
+else
+  echo "Файл $PKG_LIST не найден, пропускаю"
+fi
+
+echo "==> Ставлю quickshell и DMS"
+sudo apt install -y quickshell-git dms
 
 echo "==> Первичная генерация конфигов DMS для niri (если ещё не сгенерированы)"
 # dms setup создаёт стартовые конфиги niri/foot под DMS — если у тебя уже
